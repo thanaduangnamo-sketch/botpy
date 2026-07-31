@@ -1,69 +1,33 @@
 import os
+from threading import Thread
+from flask import Flask
 import discord
 from discord.ext import commands
-import asyncio 
-import logging
-import random 
-from colorama import init
-from colorama import Fore, Style
-import requests
-import json
-import datetime
-import random
-import threading
-import random
-import time
-import threading
 
-init()
-os.system("cls" or "clear")
+# --- [ส่วน Keep Alive สำหรับ Render + UptimeRobot] ---
+app = Flask('')
 
-token = input('{}\n[>] {} TOKEN: {}'.format(Fore.RESET, Fore.LIGHTYELLOW_EX, Fore.RESET))
-prefix = input('{}\n[>] {} PREFIX: {}'.format(Fore.RESET, Fore.LIGHTYELLOW_EX, Fore.RESET))
-client = commands.Bot(command_prefix=prefix, case_insensitive=True,
-                      self_bot=True)
+@app.route('/')
+def home():
+    return "Bot is online and active 24/7!"
 
-client.remove_command('help')
-header = {"Authorization": f'Bot {token}'}
-os.system('cls' if os.name == 'nt' else 'clear')
-os.system('cls' if os.name == 'nt' else 'clear')
+def run_web():
+    # Render จะส่งค่า PORT มาทาง Environment Variable ต้องรับให้ตรง
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
 
-intents = discord.Intents.all()
-intents.members = True
+def keep_alive():
+    t = Thread(target=run_web)
+    t.daemon = True
+    t.start()
 
-@client.event
-async def on_ready():
-    print('------')
-    print('{}\n[>] {} Selfbot running... {}'.format(Fore.RESET, Fore.LIGHTYELLOW_EX, Fore.RESET))
-    print('{}\n[>] {} Command:{} {}copyserver\n'.format(Fore.RESET, Fore.LIGHTYELLOW_EX, Fore.RESET, prefix))
-    print('     - Logged in as ' + client.user.name)
-    print('     - User ID: ' + str(client.user.id))
-    print('\n------\n')
+# --- [เรียกใช้งาน Keep Alive ก่อนรันบอท] ---
+keep_alive()
 
+# --- [ตั้งค่า และ รัน Discord Bot] ---
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix='!', intents=intents)
 
-@client.command()
-async def copyserver(ctx): 
-    await ctx.message.delete()
-    wow = await client.create_guild(f'backup-{ctx.guild.name}')
-    await asyncio.sleep(4)
-    for g in client.guilds:
-        if f'backup-{ctx.guild.name}' in g.name:
-            for c in g.channels:
-                await c.delete()
-            for cate in ctx.guild.categories:
-                x = await g.create_category(f"{cate.name}")
-                for chann in cate.channels:
-                    if isinstance(chann, discord.VoiceChannel):
-                        await x.create_voice_channel(f"{chann}")
-                    if isinstance(chann, discord.TextChannel):
-                        await x.create_text_channel(f"{chann}")
-            print(ctx.guild.roles)
-    for role in ctx.guild.roles[::-1]:
-        if role.name != "@everyone":
-            try:
-                await wow.create_role(name=role.name, color=role.color, permissions=role.permissions, hoist=role.hoist, mentionable=role.mentionable)
-                print(f"Created new role : {role.name}")
-            except:
-                break
-
-client.run(token, bot=False)
+# วาง TOKEN บอทของคุณตรงนี้
+bot.run('YOUR_DISCORD_BOT_TOKEN')
